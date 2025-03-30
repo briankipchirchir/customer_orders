@@ -1,5 +1,6 @@
 
 # app.py
+import os
 from flask import Flask
 from flask_restful import Api
 from flask_migrate import Migrate
@@ -8,7 +9,11 @@ from resources import CustomerResource, OrderResource
 
 # Initialize Flask app
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///customers_orders.db'  # SQLite database
+if os.environ.get('FLASK_ENV') == 'production':
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')  # Heroku's DATABASE_URL
+else:
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///customers_orders.db'  
+
 app.config['SECRET_KEY'] = 'your_secret_key'  # Set a secret key for session management
 
 # Initialize extensions
@@ -21,6 +26,7 @@ api.add_resource(CustomerResource, '/customers')
 api.add_resource(OrderResource, '/orders')
 
 if __name__ == '__main__':
+   if app.config['SQLALCHEMY_DATABASE_URI'] == 'sqlite:///customers_orders.db':
     with app.app_context():
-        db.create_all()  # Ensure tables are created before running the app
+        db.create_all()
     app.run(debug=True)

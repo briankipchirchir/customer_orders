@@ -68,7 +68,7 @@ class TestFlaskAPI(unittest.TestCase):
             'item': 'Laptop',
             'amount': 1500.50,
             'time': 'invalid_time',  # Invalid time format
-            'customer_code': '1234'
+            'customer_code': '5555'
         })
         self.assertEqual(response.status_code, 400)  # Ensure bad request due to invalid time format
         response_json = response.get_json()
@@ -76,7 +76,7 @@ class TestFlaskAPI(unittest.TestCase):
 
     # Test case for missing 'item' in the order
     def test_create_order_missing_item(self):
-        customer = Customer(name="brian", code="1234", phone_number="254746110366")
+        customer = Customer(name="brian", code="5555", phone_number="254746110366")
         with app.app_context():
             db.session.add(customer)
             db.session.commit()
@@ -84,7 +84,7 @@ class TestFlaskAPI(unittest.TestCase):
         response = self.app.post('/orders', json={
             'amount': 1500.50,
             'time': '2025-03-30 14:30:00',
-            'customer_code': '1234'  # Missing 'item'
+            'customer_code': '5555'  # Missing 'item'
         })
         self.assertEqual(response.status_code, 400)  # Ensure it fails due to missing 'item'
         response_json = response.get_json()

@@ -30,8 +30,21 @@ jobs:
         source venv/bin/activate  # Activate virtual environment
         pip install -r requirements.txt  # Install dependencies
 
-    # Step 4: Run the tests using unittest
+    # Step 4: Set environment to 'development' (ensuring you use the same database for testing)
+    - name: Set environment to 'development'
+      run: |
+        echo "FLASK_ENV=development" >> $GITHUB_ENV  # Set Flask environment to 'development'
+
+    # Step 5: Clean the existing database (remove and recreate the database file)
+    - name: Clean existing database
+      run: |
+        rm -f customers_orders.db  # Remove the existing database file
+        touch customers_orders.db  # Create an empty database file
+        source venv/bin/activate  # Activate the virtual environment
+        python -m flask shell -c 'from app import db; db.create_all()'  # Create tables again
+
+    # Step 6: Run the tests
     - name: Run tests
       run: |
         source venv/bin/activate  # Activate the virtual environment
-        python -m unittest discover tests/  # Run the tests in the tests/ folder
+        python -m unittest discover tests/  # Run the tests in the 'tests/' folder
