@@ -1,5 +1,4 @@
 
-# app.py
 import os
 from flask import Flask
 from flask_restful import Api
@@ -9,10 +8,12 @@ from resources import CustomerResource, OrderResource
 
 # Initialize Flask app
 app = Flask(__name__)
+
+# Set the SQLAlchemy database URI
 if os.environ.get('FLASK_ENV') == 'production':
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')  # Heroku's DATABASE_URL
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')  # For production (Heroku, etc.)
 else:
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///customers_orders.db'  
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///customers_orders.db'  # For local development
 
 app.config['SECRET_KEY'] = 'your_secret_key'  # Set a secret key for session management
 
@@ -26,7 +27,5 @@ api.add_resource(CustomerResource, '/customers')
 api.add_resource(OrderResource, '/orders')
 
 if __name__ == '__main__':
-   if app.config['SQLALCHEMY_DATABASE_URI'] == 'sqlite:///customers_orders.db':
-    with app.app_context():
-        db.create_all()
+    # Start the Flask application
     app.run(debug=True)
