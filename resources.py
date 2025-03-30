@@ -3,18 +3,84 @@ from datetime import datetime
 from models import db, Customer, Order
 import africastalking
 import re
+import requests
+from jose import jwt
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Africa's Talking setup for SMS
-username = "sandbox"  # Replace with your Africa's Talking username
-api_key = "atsk_a8ea13227600ee3759d7d30e67a96135352705af8f9dec9c2512de8c6f1b7705771388e9"  # Replace with your Africa's Talking API key
+username = os.getenv('AFRICASTALKING_USERNAME') 
+api_key = os.getenv('AFRICASTALKING_API_KEY')  
 africastalking.initialize(username, api_key)
 sms = africastalking.SMS
 
+AUTH0_DOMAIN = os.getenv('AUTH0_DOMAIN')
+
 # Phone number validation function
 def validate_phone_number(phone_number):
-    # Define a simple pattern: only digits, length between 10 and 15
+
     pattern = r'^\+?\d{10,15}$'
     return re.match(pattern, phone_number)
+
+# JWT Decoding & Verification
+def get_rsa_key(token):
+    """
+    Retrieve RSA public key from Auth0's JWKS endpoint to verify JWT token.
+    """
+    try:
+        
+        response = requests.get(f"https://{AUTH0_DOMAIN}/.well-known/jwks.json")
+        response.raise_for_status()
+        jwks = response.json()
+
+        
+        unverified_header = jwt.get_unverified_header(token)
+        if unverified_header is None:
+            raise ValueError("Unable to find header")
+
+        rsa_key = {}
+        for key in jwks['keys']:
+            if key['kid'] == unverified_header['kid']:
+                rsa_key = {
+                    'kty': key['kty'],
+                    'kid': key['kid'],
+                    'use': key['use'],
+                    'n': key['n'],
+                    'e': key['e'],
+                }
+                break
+
+        if not rsa_key:
+            raise ValueError(f"Unable to find appropriate key for kid: {unverified_header['kid']}")
+
+        return rsa_key
+    
+    except Exception as e:
+        print(f"Error getting RSA key: {str(e)}")
+        raise
+
+def verify_jwt_token(token):
+    """
+    Verify the JWT token with the public key from Auth0.
+    """
+    try:
+        # Get the RSA public key dynamically
+        rsa_key = get_rsa_key(token)
+
+        # Decode the JWT token using the RSA public key
+        payload = jwt.decode(token, rsa_key, algorithms=['RS256'], audience="your-api-identifier")
+        
+        # The payload will contain the claims from the JWT
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise ValueError("Token has expired")
+    except jwt.JWTClaimsError:
+        raise ValueError("Invalid claims")
+    except Exception as e:
+        raise ValueError(f"Invalid token: {str(e)}")
 
 class CustomerResource(Resource):
     def post(self):
@@ -22,7 +88,15 @@ class CustomerResource(Resource):
         parser.add_argument('name', type=str, required=True, help="Name cannot be blank")
         parser.add_argument('code', type=str, required=True, help="Code cannot be blank")
         parser.add_argument('phone_number', type=str, help="Phone number is optional")
+        parser.add_argument('Authorization', type=str, required=True, help="Authorization token is required")
         args = parser.parse_args()
+
+        # Verify the Authorization token
+        try:
+            token = args['Authorization'].split(" ")[1]  # Bearer <token>
+            verify_jwt_token(token)
+        except Exception as e:
+            return {'message': f'Unauthorized: {str(e)}'}, 401
 
         # Validate phone number if provided
         if args.get('phone_number') and not validate_phone_number(args['phone_number']):
@@ -47,7 +121,15 @@ class OrderResource(Resource):
         parser.add_argument('amount', type=float, required=True, help="Amount cannot be blank")
         parser.add_argument('time', type=str, required=True, help="Time cannot be blank (format: YYYY-MM-DD HH:MM:SS)")
         parser.add_argument('customer_code', type=str, required=True, help="Customer code cannot be blank")
+        parser.add_argument('Authorization', type=str, required=True, help="Authorization token is required")
         args = parser.parse_args()
+
+        # Verify the Authorization token
+        try:
+            token = args['Authorization'].split(" ")[1]  # Bearer <token>
+            verify_jwt_token(token)
+        except Exception as e:
+            return {'message': f'Unauthorized: {str(e)}'}, 401
 
         # Find customer by code
         customer = Customer.query.filter_by(code=args['customer_code']).first()
@@ -90,6 +172,3 @@ class OrderResource(Resource):
             }, 201
         except Exception as e:
             return {'message': 'An error occurred while processing your request', 'error': str(e)}, 500
-
-
-

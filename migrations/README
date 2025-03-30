@@ -1,1 +1,190 @@
-Single-database configuration for Flask.
+Customer and Order Management API
+Overview
+This project is a RESTful API built using Flask, Flask-SQLAlchemy, Flask-RESTful, Auth0 for authentication, and Africa's Talking for SMS notifications. It allows for managing customers and orders, where:
+
+Customers can be added with a name, unique code, and optional phone number.
+
+Orders can be placed by associating them with a customer via the customer code. Once an order is successfully placed, a confirmation SMS is sent to the customer's phone number.
+
+Features
+Customer Management: Add customers with basic details such as name, unique code, and optional phone number.
+
+Order Management: Add orders with item details, amount, time, and link them to a customer via the customer code.
+
+SMS Notifications: After placing an order, a confirmation SMS is sent to the customer if a valid phone number is provided.
+
+Authentication: OpenID Connect (Auth0) integration for authentication and authorization of API endpoints.
+
+Requirements
+Python 3.8 or higher
+
+Flask
+
+Flask-SQLAlchemy
+
+Flask-Migrate
+
+Flask-RESTful
+
+Africa's Talking API key for SMS functionality
+
+Auth0 Account for user authentication
+
+SQLite for local development (or a cloud-based database for production)
+
+Installation
+Clone the repository:
+
+bash
+Copy
+git clone https://github.com/your-username/customer-order-api.git
+cd customer-order-api
+Set up a virtual environment:
+
+bash
+Copy
+python3 -m venv venv
+source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+Install the required dependencies:
+
+bash
+Copy
+pip install -r requirements.txt
+Set up environment variables:
+
+
+
+Run the following commands to set up the database:
+
+bash
+Copy
+flask db init
+flask db migrate
+flask db upgrade
+Configuration
+Database URI: The project uses SQLite for local development. For production, set the DATABASE_URL to your cloud database.
+
+Auth0 Authentication: The project integrates with Auth0 for authentication. You'll need to create an Auth0 application and set up the following environment variables:
+
+AUTH0_CLIENT_ID: Your Auth0 Client ID.
+
+AUTH0_CLIENT_SECRET: Your Auth0 Client Secret.
+
+AUTH0_DOMAIN: Your Auth0 Domain (e.g., your-domain.auth0.com).
+
+SMS Notifications: The project integrates with Africa's Talking to send SMS notifications to customers when an order is placed. You need to set up an account and use your credentials (username and API key) in the resources.py file.
+
+Replace the following lines in resources.py with your own credentials:
+
+python
+Copy
+username = "your_username"
+api_key = "your_api_key"
+API Endpoints
+POST /customers
+Creates a new customer with the provided name, unique code, and optional phone number.
+
+Request Body (JSON):
+json
+Copy
+{
+  "name": "brian",
+  "code": "1234",
+  "phone_number": "254746110366"
+}
+Response:
+json
+Copy
+{
+  "message": "Customer added successfully",
+  "customer": {
+    "name": "brian",
+    "code": "1234"
+  }
+}
+POST /orders
+Creates a new order for a customer using the customer's unique code, with the specified item, amount, and time.
+
+Request Body (JSON):
+json
+Copy
+{
+  "item": "Laptop",
+  "amount": 1200.50,
+  "time": "2023-03-30 14:30:00",
+  "customer_code": "1234"
+}
+Response:
+json
+Copy
+{
+  "message": "Order added and SMS sent",
+  "customer_name": "brian",
+  "item": "Laptop",
+  "order_time": "2023-03-30 14:30:00",
+  "amount": 1200.5
+}
+Error Responses
+Invalid phone number format:
+
+json
+Copy
+{
+  "message": "Invalid phone number format. Must be 10-15 digits."
+}
+Customer not found:
+
+json
+Copy
+{
+  "message": "Customer not found"
+}
+Invalid time format:
+
+json
+Copy
+{
+  "message": "Invalid time format. Use YYYY-MM-DD HH:MM:SS"
+}
+Running the Application
+Start the Flask development server:
+
+bash
+Copy
+flask run
+By default, the app will be available at http://127.0.0.1:5000.
+
+Authentication: To access the API endpoints, you must authenticate using Auth0. You can obtain an access token by logging in via Auth0 and use it to authorize requests.
+
+Example of using JWT Token with cURL for authentication:
+
+bash
+Copy
+curl -X POST http://127.0.0.1:5000/customers -H "Authorization: Bearer YOUR_JWT_TOKEN" -d '{"name": "John Doe", "code": "CUST001"}'
+Database Schema
+Customer
+Field	Type	Description
+id	Integer	Primary key, auto-increment
+name	String	Customer's name
+code	String	Unique customer code
+phone_number	String	Customer's phone number (optional)
+Order
+Field	Type	Description
+id	Integer	Primary key, auto-increment
+item	String	Item name
+amount	Float	Order amount
+time	DateTime	Order time (YYYY-MM-DD HH:MM:SS)
+customer_id	Integer	Foreign key to Customer
+License
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+Acknowledgments
+Flask for building the web application.
+
+Flask-SQLAlchemy for handling database operations.
+
+Flask-Migrate for database migrations.
+
+Africa's Talking for SMS API.
+
+Auth0 for user authentication and authorization.
